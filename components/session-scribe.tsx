@@ -30,8 +30,8 @@ function SourceChips({ src, onSource }: { src: number[]; onSource: (index: numbe
   const shown = src.slice(0, 6)
   return (
     <span className="source-chips">
-      {shown.map((index) => (
-        <button key={index} className="source-chip" onClick={() => onSource(index)} title={`Jump to transcript line ${index}`}>{index}</button>
+      {shown.map((index, position) => (
+        <button key={`${index}-${position}`} className="source-chip" onClick={() => onSource(index)} title={`Jump to transcript line ${index}`}>{index}</button>
       ))}
       {src.length > shown.length && <span className="source-more">+{src.length - shown.length}</span>}
     </span>
@@ -58,6 +58,7 @@ export function SessionScribe() {
   const [restored, setRestored] = useState(false)
   const [drafting, setDrafting] = useState(false)
   const [noteSource, setNoteSource] = useState<'llm' | 'local'>('llm')
+  const [pendingDemoDraft, setPendingDemoDraft] = useState(false)
   const recognitionRef = useRef<any>(null)
   const startedAt = useRef(0)
   const shouldRecord = useRef(false)
@@ -71,8 +72,11 @@ export function SessionScribe() {
   // Restore the last session so a refresh never costs work.
   useEffect(() => {
     try {
-      if (new URLSearchParams(window.location.search).has('demo')) {
-        setLines(example); setElapsed(243); setRestored(true); return
+      const demo = new URLSearchParams(window.location.search).get('demo')
+      if (demo !== null) {
+        setLines(example); setElapsed(243); setRestored(true)
+        if (demo === 'note') setPendingDemoDraft(true)
+        return
       }
       const saved = window.localStorage.getItem(STORAGE_KEY)
       if (!saved) { setRestored(true); return }
@@ -100,6 +104,13 @@ export function SessionScribe() {
     const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - startedAt.current) / 1000)), 500)
     return () => window.clearInterval(timer)
   }, [recording])
+
+  // Keep the newest line in view while recording — on mobile the page scrolls,
+  // on desktop the timeline does, and scrollIntoView handles both.
+  useEffect(() => {
+    if (!recording || !lines.length) return
+    document.getElementById(`line-${lines.length - 1}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [lines.length, recording])
 
   useEffect(() => {
     if (!toast) return
@@ -212,6 +223,12 @@ export function SessionScribe() {
       setDrafting(false)
     }
   }
+
+  useEffect(() => {
+    if (!pendingDemoDraft || !lines.length) return
+    setPendingDemoDraft(false)
+    void draftNote()
+  }, [pendingDemoDraft, lines.length])
 
   const copyNote = async () => { await navigator.clipboard.writeText(noteText); setToast('Note copied to clipboard') }
 

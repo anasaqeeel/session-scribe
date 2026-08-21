@@ -222,6 +222,9 @@ button:disabled { cursor: not-allowed; }
   .workspace { display: block; padding-top: 12px; }
   /* Height comes from content; the page scrolls, the pane does not. */
   .pane { min-height: 0; border-radius: 14px; }
+  /* The pane must release its desktop height cap too, or `overflow: hidden`
+     silently clips every line past the fold with no way to scroll to it. */
+  .pane { max-height: none; overflow: visible; }
   .timeline, .note-body { max-height: none; overflow: visible; }
   .timeline { padding: 16px 16px 20px 0; }
 

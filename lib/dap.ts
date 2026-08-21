@@ -87,6 +87,8 @@ export function formatTime(seconds: number) {
 
 const words = (text: string) => text.trim().split(/\s+/).filter(Boolean)
 const trim = (text: string) => text.replace(/\s+/g, ' ').trim()
+// A line can belong to several themes, so flat-mapped sources repeat.
+const uniq = (values: number[]) => Array.from(new Set(values)).sort((a, b) => a - b)
 
 function excerpt(text: string, max = 150) {
   const clean = trim(text)
@@ -208,14 +210,14 @@ export function buildNote(lines: Line[]): Note {
     text: lines.length
       ? `Client participated across ${clientIdx.length} of ${lines.length} recorded turns over ${formatTime(duration)}. ${topThemes.length ? `Session content centred on ${listPhrase(topThemes)}.` : 'No recurring clinical themes were detected in the transcript.'}${risk.length ? ' Risk language was detected and is flagged below.' : ''}`
       : '',
-    src: presentationSrc,
+    src: uniq(presentationSrc),
   }
 
   const data: Section = {
     text: dataPoints.length
       ? `Client reported the following, quoted from the session record. ${dataPoints.length} statement${dataPoints.length === 1 ? '' : 's'} carried clinical content across ${listPhrase(topThemes) || 'the session'}.`
       : 'No client statements in this transcript matched the clinical content lexicon.',
-    src: dataPoints.flatMap((point) => point.src),
+    src: uniq(dataPoints.flatMap((point) => point.src)),
   }
 
   const engagement: string[] = []
@@ -230,7 +232,7 @@ export function buildNote(lines: Line[]): Note {
       risk.length ? `Risk language present — see flags below; clinician determination required.` : 'No explicit risk language detected in client turns.',
       'This is a scaffold assembled from transcript signals only. Clinical impression, formulation, and diagnosis are the clinician’s to write.',
     ].filter(Boolean).join(' '),
-    src: themes.slice(0, 3).flatMap((theme) => theme.src.slice(0, 2)),
+    src: uniq(themes.slice(0, 3).flatMap((theme) => theme.src.slice(0, 2))),
   }
 
   const planItems = homework.slice(0, 4)
@@ -240,7 +242,7 @@ export function buildNote(lines: Line[]): Note {
       planItems.length ? `${planItems.length} between-session item${planItems.length === 1 ? '' : 's'} were discussed and are listed below.` : 'No between-session actions were identified in the transcript.',
       deferred.length ? 'A future-session check-in was named explicitly.' : '',
     ].filter(Boolean).join(' '),
-    src: [...planItems.flatMap((item) => item.src), ...deferred].slice(0, 8),
+    src: uniq([...planItems.flatMap((item) => item.src), ...deferred]).slice(0, 8),
   }
 
   return {
