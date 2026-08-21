@@ -65,6 +65,9 @@ export function SessionScribe() {
   // Restore the last session so a refresh never costs work.
   useEffect(() => {
     try {
+      if (new URLSearchParams(window.location.search).has('demo')) {
+        setLines(example); setElapsed(243); setRestored(true); return
+      }
       const saved = window.localStorage.getItem(STORAGE_KEY)
       if (!saved) { setRestored(true); return }
       const parsed = JSON.parse(saved)
@@ -275,7 +278,7 @@ export function SessionScribe() {
               {recording ? 'LIVE' : 'PAUSED'}
             </div>
           </div>
-          <div className="timeline">
+          <div className={`timeline ${indexedLines.length === 0 && !interim ? "is-empty" : ""}`}>
             {indexedLines.length === 0 && !interim && (
               <div className="empty-state">
                 <div className="empty-orb"><Mic size={22} /></div>
