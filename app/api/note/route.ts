@@ -36,7 +36,9 @@ function providerError(status: number, message: string) {
 
 export async function POST(request: Request) {
   if (!process.env.OPENAI_API_KEY) {
-    return providerError(500, 'OPENAI_API_KEY is not set. Add it to .env.local and restart the dev server.')
+    return providerError(503, process.env.NODE_ENV === 'production'
+      ? 'Model drafting is not configured on this deployment. Using the on-device draft instead.'
+      : 'OPENAI_API_KEY is not set. Add it to .env.local and restart the dev server.')
   }
 
   let transcript: unknown
