@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Bookmark, Check, Clipboard, Download, FileText, Mic, Pencil, Printer, RotateCcw, Search, Sparkles, StopCircle, Trash2, X } from 'lucide-react'
-import { buildNote, formatTime, normalise, noteToMarkdown, noteToText, talkStats, type Line, type Note, type NoteItem, type Speaker } from '@/lib/dap'
+import { buildNote, formatTime, isRtl, normalise, noteToMarkdown, noteToText, talkStats, type Line, type Note, type NoteItem, type Speaker } from '@/lib/dap'
 
 const STORAGE_KEY = 'session-scribe:draft-v1'
 
@@ -289,7 +289,7 @@ export function SessionScribe() {
                 <div className="rule-dot" />
                 <div className="line-copy">
                   <div className={`speaker ${line.speaker === 'Therapist' ? 'therapist' : ''}`}>{line.speaker}</div>
-                  <p>{line.text}<sup>{line.index}</sup></p>
+                  <p dir={isRtl(line.text) ? 'rtl' : 'ltr'} className={isRtl(line.text) ? 'is-urdu' : ''}>{line.text}<sup>{line.index}</sup></p>
                 </div>
               </div>
             ))}
@@ -304,7 +304,7 @@ export function SessionScribe() {
                 <div className="rule-dot" />
                 <div className="line-copy">
                   <div className="speaker">{speaker}</div>
-                  <p>{interim}</p>
+                  <p dir={isRtl(interim) ? 'rtl' : 'ltr'} className={isRtl(interim) ? 'is-urdu' : ''}>{interim}</p>
                 </div>
               </div>
             )}
@@ -356,7 +356,7 @@ export function SessionScribe() {
 
               <div className="editor-block">
                 <label className="eyebrow" htmlFor="note-editor">Plain text — edit before signing</label>
-                <textarea id="note-editor" className="note-editor" value={noteText} onChange={(event) => setNoteText(event.target.value)} />
+                <textarea id="note-editor" className={`note-editor ${isRtl(noteText) ? 'is-urdu' : ''}`} dir={isRtl(noteText) ? 'rtl' : 'ltr'} value={noteText} onChange={(event) => setNoteText(event.target.value)} />
               </div>
             </div>
           ) : (
@@ -393,7 +393,7 @@ function ItemList({ items, onSource }: { items: NoteItem[]; onSource: (index: nu
       {items.map((item, index) => (
         <li key={index} className={item.severity ? `sev-${item.severity}` : ''}>
           <div className="item-main">
-            <span className="item-label">{item.label}</span>
+            <span className={`item-label ${isRtl(item.label) ? 'is-urdu' : ''}`} dir={isRtl(item.label) ? 'rtl' : 'ltr'}>{item.label}</span>
             <SourceChips src={item.src} onSource={onSource} />
           </div>
           {item.detail && <span className="item-detail">{item.detail}</span>}
@@ -408,23 +408,23 @@ function NotePreview({ note, onSource }: { note: Note; onSource: (index: number)
     <div className="note-preview">
       <section className="note-section">
         <h3>Presentation</h3>
-        <p>{note.presentation.text} <SourceChips src={note.presentation.src} onSource={onSource} /></p>
+        <p dir={isRtl(note.presentation.text) ? 'rtl' : 'ltr'} className={isRtl(note.presentation.text) ? 'is-urdu' : ''}>{note.presentation.text} <SourceChips src={note.presentation.src} onSource={onSource} /></p>
       </section>
 
       <section className="note-section">
         <h3>Data</h3>
-        <p>{note.data.text}</p>
+        <p dir={isRtl(note.data.text) ? 'rtl' : 'ltr'} className={isRtl(note.data.text) ? 'is-urdu' : ''}>{note.data.text}</p>
         {note.dataPoints.length > 0 && <ItemList items={note.dataPoints} onSource={onSource} />}
       </section>
 
       <section className="note-section">
         <h3>Assessment</h3>
-        <p>{note.assessment.text} <SourceChips src={note.assessment.src} onSource={onSource} /></p>
+        <p dir={isRtl(note.assessment.text) ? 'rtl' : 'ltr'} className={isRtl(note.assessment.text) ? 'is-urdu' : ''}>{note.assessment.text} <SourceChips src={note.assessment.src} onSource={onSource} /></p>
       </section>
 
       <section className="note-section">
         <h3>Plan</h3>
-        <p>{note.plan.text}</p>
+        <p dir={isRtl(note.plan.text) ? 'rtl' : 'ltr'} className={isRtl(note.plan.text) ? 'is-urdu' : ''}>{note.plan.text}</p>
         {note.homework.length > 0 && <ItemList items={note.homework} onSource={onSource} />}
       </section>
 

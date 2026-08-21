@@ -221,3 +221,16 @@ button:disabled { cursor: not-allowed; }
 .source-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font: 500 9px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
 .source-badge.is-llm { color: #4a4275; background: #ebe7f7; }
 .source-badge.is-local { color: #4d6b52; background: #e7f0e8; }
+
+/* ---------- Urdu / RTL ---------- */
+.is-urdu {
+  font-family: var(--font-nastaliq), 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
+  line-height: 2.35;
+  font-size: 15px;
+}
+p.is-urdu { text-align: right; }
+.line-copy p.is-urdu sup { margin: 0 5px 0 0; }
+.transcript-line:has(p.is-urdu) .line-copy { padding-right: 14px; padding-left: 4px; }
+.item-label.is-urdu { display: block; text-align: right; line-height: 2.2; }
+textarea.note-editor.is-urdu { line-height: 2.4; text-align: right; }
+.note-section p.is-urdu { font-size: 15px; }

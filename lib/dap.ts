@@ -25,39 +25,39 @@ export type Note = {
 type Lexicon = { key: string; label: string; detail: string; pattern: RegExp }
 
 const THEMES: Lexicon[] = [
-  { key: 'sleep', label: 'Sleep disruption', detail: 'Sleep, waking, or rest was raised', pattern: /\b(sleep|asleep|awake|wakes?|waking|woke|insomnia|nightmare|rested?|tired|exhaust\w*)\b/i },
-  { key: 'anxiety', label: 'Anxiety', detail: 'Anxious affect or apprehension was described', pattern: /\b(anxious|anxiety|panic|worry|worried|worrying|nervous|on edge|dread|racing|tense)\b/i },
-  { key: 'somatic', label: 'Somatic symptoms', detail: 'Bodily sensations were reported', pattern: /\b(chest|tight\w*|shak\w+|breath\w*|stomach|nausea|nauseous|headache|dizzy|heart)\b/i },
-  { key: 'appetite', label: 'Appetite and eating', detail: 'Eating patterns or meals were discussed', pattern: /\b(eat|eating|ate|breakfast|lunch|dinner|meal|appetite|food|hungry|yogurt)\b/i },
-  { key: 'rumination', label: 'Rumination', detail: 'Repetitive or spiralling thought was described', pattern: /\b(overthink\w*|spinning|spiral\w*|racing thoughts?|ruminat\w+|keep thinking|can.?t stop thinking|the list)\b/i },
-  { key: 'mood', label: 'Low mood', detail: 'Depressed or flattened affect was described', pattern: /\b(sad|down|low|depress\w*|hopeless|numb|empty|crying|tearful|unmotivated)\b/i },
-  { key: 'work', label: 'Occupational stress', detail: 'Work demands were raised', pattern: /\b(work|working|job|email|boss|deadline|meeting|office|shift|colleague)\b/i },
-  { key: 'relationships', label: 'Relationships', detail: 'Interpersonal content was raised', pattern: /\b(partner|husband|wife|spouse|friends?|family|mother|father|mom|dad|kids?|children|lonely|alone)\b/i },
-  { key: 'coping', label: 'Coping strategies', detail: 'A coping skill was referenced or practised', pattern: /\b(breathing exercise|breathing|grounding|meditat\w*|journal\w*|walk\w*|exercise|coping|strateg\w+|technique|reminder|cue)\b/i },
-  { key: 'avoidance', label: 'Avoidance', detail: 'Avoidant or deferring behaviour was described', pattern: /\b(avoid\w*|put off|putting off|procrastinat\w+|cancel\w*|skip\w*|isolat\w+)\b/i },
-  { key: 'morning', label: 'Morning routine', detail: 'Time-of-day pattern was identified', pattern: /\b(morning|mornings|wake up|get up|start of the day|before work)\b/i },
+  { key: 'sleep', label: 'Sleep disruption', detail: 'Sleep, waking, or rest was raised', pattern: /\b(sleep|asleep|awake|wakes?|waking|woke|insomnia|nightmare|rested?|tired|exhaust\w*)\b|نیند|سونا|جاگ|بیدار|تھک|آرام/i },
+  { key: 'anxiety', label: 'Anxiety', detail: 'Anxious affect or apprehension was described', pattern: /\b(anxious|anxiety|panic|worry|worried|worrying|nervous|on edge|dread|racing|tense)\b|پریشان|گھبراہٹ|بے چین|فکر|ڈر|خوف|اضطراب/i },
+  { key: 'somatic', label: 'Somatic symptoms', detail: 'Bodily sensations were reported', pattern: /\b(chest|tight\w*|shak\w+|breath\w*|stomach|nausea|nauseous|headache|dizzy|heart)\b|سینے|سینہ|سانس|دل|پیٹ|سردرد|چکر|کپکپ/i },
+  { key: 'appetite', label: 'Appetite and eating', detail: 'Eating patterns or meals were discussed', pattern: /\b(eat|eating|ate|breakfast|lunch|dinner|meal|appetite|food|hungry|yogurt)\b|کھانا|ناشتہ|بھوک|کھا|دوپہر|رات کا کھانا/i },
+  { key: 'rumination', label: 'Rumination', detail: 'Repetitive or spiralling thought was described', pattern: /\b(overthink\w*|spinning|spiral\w*|racing thoughts?|ruminat\w+|keep thinking|can.?t stop thinking|the list)\b|سوچ|خیال|بار بار|دماغ|الجھ/i },
+  { key: 'mood', label: 'Low mood', detail: 'Depressed or flattened affect was described', pattern: /\b(sad|down|low|depress\w*|hopeless|numb|empty|crying|tearful|unmotivated)\b|اداس|افسردہ|مایوس|رونا|خالی|دل نہیں/i },
+  { key: 'work', label: 'Occupational stress', detail: 'Work demands were raised', pattern: /\b(work|working|job|email|boss|deadline|meeting|office|shift|colleague)\b|کام|نوکری|دفتر|باس|ای میل|ڈیڈ لائن/i },
+  { key: 'relationships', label: 'Relationships', detail: 'Interpersonal content was raised', pattern: /\b(partner|husband|wife|spouse|friends?|family|mother|father|mom|dad|kids?|children|lonely|alone)\b|شوہر|بیوی|دوست|گھر|والدہ|والد|امی|ابو|بچے|تنہا/i },
+  { key: 'coping', label: 'Coping strategies', detail: 'A coping skill was referenced or practised', pattern: /\b(breathing exercise|breathing|grounding|meditat\w*|journal\w*|walk\w*|exercise|coping|strateg\w+|technique|reminder|cue)\b|ورزش|سانس کی مشق|چہل قدمی|مراقبہ|ڈائری|طریقہ/i },
+  { key: 'avoidance', label: 'Avoidance', detail: 'Avoidant or deferring behaviour was described', pattern: /\b(avoid\w*|put off|putting off|procrastinat\w+|cancel\w*|skip\w*|isolat\w+)\b|بچنا|ٹال|چھوڑ|منسوخ|دور/i },
+  { key: 'morning', label: 'Morning routine', detail: 'Time-of-day pattern was identified', pattern: /\b(morning|mornings|wake up|get up|start of the day|before work)\b|صبح|سویرے|دن کا آغاز/i },
 ]
 
 // Conservative, explicit-language only. Screening aid, never a determination.
 const RISK: { severity: Severity; label: string; pattern: RegExp }[] = [
-  { severity: 'high', label: 'Explicit suicidal statement', pattern: /\b(kill myself|killing myself|end my life|ending my life|take my own life|suicid\w*|better off dead|don.?t want to be here|not want to be here|overdose)\b/i },
-  { severity: 'moderate', label: 'Self-harm language', pattern: /\b(hurt myself|harm myself|self.?harm|cutting myself|hurting myself)\b/i },
-  { severity: 'moderate', label: 'Hopelessness', pattern: /\b(hopeless|no point|nothing matters|give up|giving up|can.?t go on|no way out)\b/i },
+  { severity: 'high', label: 'Explicit suicidal statement', pattern: /\b(kill myself|killing myself|end my life|ending my life|take my own life|suicid\w*|better off dead|don.?t want to be here|not want to be here|overdose)\b|خودکشی|جان دے|مر جاؤں|زندہ نہیں رہنا|مرنا چاہتا/i },
+  { severity: 'moderate', label: 'Self-harm language', pattern: /\b(hurt myself|harm myself|self.?harm|cutting myself|hurting myself)\b|خود کو نقصان|خود کو تکلیف|کاٹ/i },
+  { severity: 'moderate', label: 'Hopelessness', pattern: /\b(hopeless|no point|nothing matters|give up|giving up|can.?t go on|no way out)\b|ناامید|کوئی فائدہ نہیں|ہار مان|برداشت نہیں/i },
   { severity: 'low', label: 'Self-critical or burden language', pattern: /\b(worthless|burden|hate myself|failure|trapped)\b/i },
 ]
 
 const INTERVENTIONS: Lexicon[] = [
-  { key: 'open-question', label: 'Open question', detail: 'Invited elaboration rather than a yes/no answer', pattern: /^(what|how|when|where|who|tell me|say more|can you describe)\b/i },
-  { key: 'reflection', label: 'Reflection', detail: 'Restated the client’s experience back to them', pattern: /^(you are|you’re|you were|it sounds like|so you|i hear|that sounds)\b/i },
-  { key: 'linking', label: 'Linking / pattern identification', detail: 'Connected two elements the client reported', pattern: /\b(link|connection|between|pattern|notice|noticing|relationship between)\b/i },
-  { key: 'directive', label: 'Directive / task setting', detail: 'Proposed a specific between-session action', pattern: /\b(let us|let’s|let's|please|try|practice|i.?d like you to|we will|we’ll|build on)\b/i },
-  { key: 'validation', label: 'Validation', detail: 'Normalised or affirmed the client’s experience', pattern: /\b(that makes sense|understandable|of course|no wonder|makes sense that)\b/i },
-  { key: 'agenda', label: 'Agenda setting / review', detail: 'Oriented the session in time', pattern: /\b(check in|checking in|next week|next session|last met|since we|last time)\b/i },
+  { key: 'open-question', label: 'Open question', detail: 'Invited elaboration rather than a yes/no answer', pattern: /^(what|how|when|where|who|tell me|say more|can you describe)\b|^کیا|^کیسے|^کب|^کہاں|^کون|^بتائیں|^مجھے بتائیں/i },
+  { key: 'reflection', label: 'Reflection', detail: 'Restated the client’s experience back to them', pattern: /^(you are|you’re|you were|it sounds like|so you|i hear|that sounds)\b|^آپ |^ایسا لگتا|^تو آپ/i },
+  { key: 'linking', label: 'Linking / pattern identification', detail: 'Connected two elements the client reported', pattern: /\b(link|connection|between|pattern|notice|noticing|relationship between)\b|تعلق|ربط|سلسلہ|نوٹ کر|محسوس کر/i },
+  { key: 'directive', label: 'Directive / task setting', detail: 'Proposed a specific between-session action', pattern: /\b(let us|let’s|let's|please|try|practice|i.?d like you to|we will|we’ll|build on)\b|آئیے|کوشش کریں|لکھ لیں|مشق کریں|شامل کریں/i },
+  { key: 'validation', label: 'Validation', detail: 'Normalised or affirmed the client’s experience', pattern: /\b(that makes sense|understandable|of course|no wonder|makes sense that)\b|سمجھ آتا|قدرتی بات|فطری بات|ٹھیک محسوس/i },
+  { key: 'agenda', label: 'Agenda setting / review', detail: 'Oriented the session in time', pattern: /\b(check in|checking in|next week|next session|last met|since we|last time)\b|اگلے ہفتے|اگلی نشست|پچھلی ملاقات|پچھلی بار/i },
 ]
 
-const CLIENT_COMMITMENT = /\b(i can do that|i can try|i will|i’ll|i'll|that feels doable|i might|i think i|i could|sounds doable|i’ll try)\b/i
-const THERAPIST_ASSIGNMENT = /\b(let us|let’s|let's|please note|please try|try to|practice|before|this week|between now and|homework|build on)\b/i
-const NEXT_SESSION = /\b(next week|next session|next time|when we meet|come back to)\b/i
+const CLIENT_COMMITMENT = /\b(i can do that|i can try|i will|i’ll|i'll|that feels doable|i might|i think i|i could|sounds doable|i’ll try)\b|میں کر سکتا|میں کر سکتی|کوشش کروں|ٹھیک ہے میں|کر لوں گا|کر لوں گی/i
+const THERAPIST_ASSIGNMENT = /\b(let us|let’s|let's|please note|please try|try to|practice|before|this week|between now and|homework|build on)\b|آئیے|کوشش کریں|لکھ لیں|اس ہفتے|مشق کریں/i
+const NEXT_SESSION = /\b(next week|next session|next time|when we meet|come back to)\b|اگلے ہفتے|اگلی نشست|اگلی بار/i
 
 export function formatTime(seconds: number) {
   const mins = Math.floor(seconds / 60).toString().padStart(2, '0')
@@ -114,7 +114,7 @@ export function buildNote(lines: Line[]): Note {
   for (const index of therapistIdx) {
     const text = trim(lines[index].text)
     for (const rule of INTERVENTIONS) {
-      const isQuestion = text.endsWith('?')
+      const isQuestion = /[?\u061F]$/.test(text)
       if (rule.key === 'open-question' && !isQuestion) continue
       if (rule.pattern.test(text)) {
         const existing = interventions.find((item) => item.label === rule.label)
@@ -157,7 +157,7 @@ export function buildNote(lines: Line[]): Note {
   const followups: NoteItem[] = []
   for (const index of therapistIdx) {
     const text = trim(lines[index].text)
-    if (!text.endsWith('?')) continue
+    if (!/[?\u061F]$/.test(text)) continue
     const reply = lines[index + 1]
     if (reply && reply.speaker === 'Client' && words(reply.text).length < 8) {
       followups.push({ label: excerpt(text, 120), detail: `Answered in ${words(reply.text).length} words — worth revisiting`, src: [index, index + 1] })
@@ -337,4 +337,12 @@ export function normalise(payload: any, fallback: Note): Note {
     followups: itemsOf(payload?.followups),
     meta: fallback.meta,
   }
+}
+
+const URDU_RANGE = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/
+
+export function isRtl(text: string): boolean {
+  const rtl = (text.match(new RegExp(URDU_RANGE, 'g')) || []).length
+  const letters = (text.match(/\p{L}/gu) || []).length
+  return letters > 0 && rtl / letters > 0.3
 }
