@@ -59,6 +59,26 @@ const CLIENT_COMMITMENT = /\b(i can do that|i can try|i will|i’ll|i'll|that fe
 const THERAPIST_ASSIGNMENT = /\b(let us|let’s|let's|please note|please try|try to|practice|before|this week|between now and|homework|build on)\b|آئیے|کوشش کریں|لکھ لیں|اس ہفتے|مشق کریں/i
 const NEXT_SESSION = /\b(next week|next session|next time|when we meet|come back to)\b|اگلے ہفتے|اگلی نشست|اگلی بار/i
 
+
+// Negation cues. Applied to THEMES only — never to risk, where suppressing a
+// match is the dangerous direction ("I don't want to be here" is a genuine
+// risk statement that contains a negation).
+const NEGATION = /\b(not|no|never|don.?t|doesn.?t|didn.?t|isn.?t|wasn.?t|aren.?t|hardly|rarely|no longer|anymore)\b|نہیں|کبھی نہیں|اب نہیں/i
+
+function sentenceAround(text: string, pattern: RegExp): string {
+  const sentences = text.split(/(?<=[.!?۔؟])\s+/)
+  return sentences.find((part) => pattern.test(part)) ?? text
+}
+
+function isNegated(text: string, pattern: RegExp): boolean {
+  const sentence = sentenceAround(text, pattern)
+  // English only. In Urdu a negation frequently asserts the symptom rather
+  // than denying it — "نیند پوری نہیں ہوتی" (my sleep is not complete) is a
+  // report of disrupted sleep, so suppressing the match inverts the meaning.
+  if (/[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(sentence)) return false
+  return NEGATION.test(sentence)
+}
+
 export function formatTime(seconds: number) {
   const mins = Math.floor(seconds / 60).toString().padStart(2, '0')
   const secs = Math.floor(seconds % 60).toString().padStart(2, '0')
@@ -91,7 +111,9 @@ export function buildNote(lines: Line[]): Note {
   // ---- Themes: counted across every line, sourced exactly -------------------
   const themes: NoteItem[] = THEMES
     .map((theme) => {
-      const src = lines.map((line, index) => (theme.pattern.test(line.text) ? index : -1)).filter((index) => index >= 0)
+      const src = lines
+        .map((line, index) => (theme.pattern.test(line.text) && !isNegated(line.text, theme.pattern) ? index : -1))
+        .filter((index) => index >= 0)
       return { label: theme.label, detail: theme.detail, src }
     })
     .filter((theme) => theme.src.length > 0)
@@ -104,7 +126,12 @@ export function buildNote(lines: Line[]): Note {
       if (rule.pattern.test(lines[index].text)) {
         const existing = risk.find((item) => item.label === rule.label)
         if (existing) existing.src.push(index)
-        else risk.push({ label: rule.label, detail: `Client language at ${formatTime(lines[index].t)}. Screening flag only — requires clinician review.`, severity: rule.severity, src: [index] })
+        else risk.push({
+          label: `${rule.label} — “${excerpt(sentenceAround(lines[index].text, rule.pattern), 120)}”`,
+          detail: `Word match at ${formatTime(lines[index].t)}. Not a determination — read the line. Negation is not understood.`,
+          severity: rule.severity,
+          src: [index],
+        })
       }
     }
   }
@@ -242,7 +269,7 @@ export function noteToText(note: Note): string {
     block('PLAN', [note.plan.text, bullets(note.homework)].filter(Boolean).join('\n')),
     note.themes.length ? block('THEMES', bullets(note.themes)) : '',
     note.interventions.length ? block('INTERVENTIONS', bullets(note.interventions)) : '',
-    note.risk.length ? block('RISK FLAGS (screening only)', bullets(note.risk)) : '',
+    note.risk.length ? block('LANGUAGE MATCHES REQUIRING REVIEW (not a risk assessment)', bullets(note.risk)) : '',
     note.followups.length ? block('FOLLOW-UPS', bullets(note.followups)) : '',
     `\nGenerated locally from ${note.meta.lines} transcript lines. Numbers in brackets are transcript line indices. Draft only — becomes a record when reviewed and signed.`,
   ].filter(Boolean).join('\n')

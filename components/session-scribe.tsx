@@ -61,6 +61,12 @@ export function SessionScribe() {
   const recognitionRef = useRef<any>(null)
   const startedAt = useRef(0)
   const shouldRecord = useRef(false)
+  // The recogniser's handlers outlive the render that created them, so read
+  // live values through refs rather than the captured closure.
+  const speakerRef = useRef(speaker)
+  const languageRef = useRef(language)
+  const startRef = useRef<() => void>(() => {})
+  useEffect(() => { speakerRef.current = speaker }, [speaker])
 
   // Restore the last session so a refresh never costs work.
   useEffect(() => {
@@ -118,20 +124,21 @@ export function SessionScribe() {
     const recognition = new SpeechRecognition()
     recognition.continuous = true
     recognition.interimResults = true
-    recognition.lang = language
+    recognition.lang = languageRef.current
     recognition.onresult = (event: any) => {
       let nextInterim = ''
       const finalLines: Line[] = []
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
         const text = event.results[i][0].transcript.trim()
-        if (event.results[i].isFinal && text) finalLines.push({ t: Math.floor((Date.now() - startedAt.current) / 1000), speaker, text })
+        if (event.results[i].isFinal && text) finalLines.push({ t: Math.floor((Date.now() - startedAt.current) / 1000), speaker: speakerRef.current, text })
         else nextInterim += text
       }
       if (finalLines.length) setLines((current) => [...current, ...finalLines])
       setInterim(nextInterim)
     }
     recognition.onend = () => {
-      if (shouldRecord.current) window.setTimeout(start, 100)
+      // Restart through the ref so a language change mid-session takes effect.
+      if (shouldRecord.current) window.setTimeout(() => startRef.current(), 100)
     }
     recognition.onerror = (event: any) => {
       if (event.error !== 'no-speech' && event.error !== 'aborted') setError(`Microphone error: ${event.error}.`)
@@ -139,7 +146,18 @@ export function SessionScribe() {
     recognitionRef.current = recognition
     setRecording(true)
     recognition.start()
-  }, [language, speaker])
+  }, [])
+
+  useEffect(() => { startRef.current = start }, [start])
+
+  // Switching language mid-session rebuilds the recogniser: `lang` is fixed at
+  // construction, so the running instance can never change dialect in place.
+  useEffect(() => {
+    languageRef.current = language
+    if (!recording) return
+    setToast(`Listening in ${language === 'ur-PK' ? 'اردو' : language === 'en-IN' ? 'English (India)' : 'English (US)'}`)
+    recognitionRef.current?.stop() // onend restarts it with the new language
+  }, [language])
 
   useEffect(() => () => { shouldRecord.current = false; recognitionRef.current?.stop() }, [])
 
