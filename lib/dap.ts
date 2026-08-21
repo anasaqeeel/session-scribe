@@ -27,14 +27,14 @@ type Lexicon = { key: string; label: string; detail: string; pattern: RegExp }
 const THEMES: Lexicon[] = [
   { key: 'sleep', label: 'Sleep disruption', detail: 'Sleep, waking, or rest was raised', pattern: /\b(sleep|asleep|awake|wakes?|waking|woke|insomnia|nightmare|rested?|tired|exhaust\w*)\b|نیند|سونا|جاگ|بیدار|تھک|آرام/i },
   { key: 'anxiety', label: 'Anxiety', detail: 'Anxious affect or apprehension was described', pattern: /\b(anxious|anxiety|panic|worry|worried|worrying|nervous|on edge|dread|racing|tense)\b|پریشان|گھبراہٹ|بے چین|فکر|ڈر|خوف|اضطراب/i },
-  { key: 'somatic', label: 'Somatic symptoms', detail: 'Bodily sensations were reported', pattern: /\b(chest|tight\w*|shak\w+|breath\w*|stomach|nausea|nauseous|headache|dizzy|heart)\b|سینے|سینہ|سانس|دل|پیٹ|سردرد|چکر|کپکپ/i },
+  { key: 'somatic', label: 'Somatic symptoms', detail: 'Bodily sensations were reported', pattern: /\b(chest|tight\w*|shak\w+|stomach|nausea|nauseous|headache|dizzy|heart)\b|\bbreath\w*\b(?!\s+(?:exercise|technique|practice|work))|سینے|سینہ|سردرد|چکر|کپکپ/i },
   { key: 'appetite', label: 'Appetite and eating', detail: 'Eating patterns or meals were discussed', pattern: /\b(eat|eating|ate|breakfast|lunch|dinner|meal|appetite|food|hungry|yogurt)\b|کھانا|ناشتہ|بھوک|کھا|دوپہر|رات کا کھانا/i },
   { key: 'rumination', label: 'Rumination', detail: 'Repetitive or spiralling thought was described', pattern: /\b(overthink\w*|spinning|spiral\w*|racing thoughts?|ruminat\w+|keep thinking|can.?t stop thinking|the list)\b|سوچ|خیال|بار بار|دماغ|الجھ/i },
-  { key: 'mood', label: 'Low mood', detail: 'Depressed or flattened affect was described', pattern: /\b(sad|down|low|depress\w*|hopeless|numb|empty|crying|tearful|unmotivated)\b|اداس|افسردہ|مایوس|رونا|خالی|دل نہیں/i },
+  { key: 'mood', label: 'Low mood', detail: 'Depressed or flattened affect was described', pattern: /\b(sad|depress\w*|hopeless|numb|crying|tearful|unmotivated|miserable)\b|\b(feel|feeling|felt|been|am|was|so|really)\s+(down|low|empty|flat)\b|\bempty inside\b|اداس|افسردہ|مایوس|رونا|خالی|دل نہیں/i },
   { key: 'work', label: 'Occupational stress', detail: 'Work demands were raised', pattern: /\b(work|working|job|email|boss|deadline|meeting|office|shift|colleague)\b|کام|نوکری|دفتر|باس|ای میل|ڈیڈ لائن/i },
   { key: 'relationships', label: 'Relationships', detail: 'Interpersonal content was raised', pattern: /\b(partner|husband|wife|spouse|friends?|family|mother|father|mom|dad|kids?|children|lonely|alone)\b|شوہر|بیوی|دوست|گھر|والدہ|والد|امی|ابو|بچے|تنہا/i },
   { key: 'coping', label: 'Coping strategies', detail: 'A coping skill was referenced or practised', pattern: /\b(breathing exercise|breathing|grounding|meditat\w*|journal\w*|walk\w*|exercise|coping|strateg\w+|technique|reminder|cue)\b|ورزش|سانس کی مشق|چہل قدمی|مراقبہ|ڈائری|طریقہ/i },
-  { key: 'avoidance', label: 'Avoidance', detail: 'Avoidant or deferring behaviour was described', pattern: /\b(avoid\w*|put off|putting off|procrastinat\w+|cancel\w*|skip\w*|isolat\w+)\b|بچنا|ٹال|چھوڑ|منسوخ|دور/i },
+  { key: 'avoidance', label: 'Avoidance', detail: 'Avoidant or deferring behaviour was described', pattern: /\b(avoid\w*|put off|putting off|procrastinat\w+|cancel\w*|isolat\w+)\b|\bskip\w*\b(?!\s+(?:breakfast|lunch|dinner|meals?|food))|بچنا|ٹال|چھوڑ|منسوخ/i },
   { key: 'morning', label: 'Morning routine', detail: 'Time-of-day pattern was identified', pattern: /\b(morning|mornings|wake up|get up|start of the day|before work)\b|صبح|سویرے|دن کا آغاز/i },
 ]
 
@@ -70,16 +70,35 @@ function sentenceAround(text: string, pattern: RegExp): string {
   return sentences.find((part) => pattern.test(part)) ?? text
 }
 
+// "can't sleep" / "couldn't eat" negate an ability, which ASSERTS the symptom.
+// Only a negation of a state ("not hopeless") removes one.
+const RESOLVED = /\b(fine|better|okay|ok|improved|improving|normal|no longer|gone now|settled)\b|\b(?:n.t|not)\s+(?:hurt|bother\w*|ach\w+|happen\w*|tight|bad)\b/i
+const INABILITY = /\b(can.?t|cannot|could\s?n.?t|couldn.t|unable to|hard to|difficult to|struggle\w* to|won.?t|fail\w* to)\b/i
+
 function isNegated(text: string, pattern: RegExp): boolean {
   const sentence = sentenceAround(text, pattern)
-  // English only. In Urdu a negation frequently asserts the symptom rather
-  // than denying it — "نیند پوری نہیں ہوتی" (my sleep is not complete) is a
-  // report of disrupted sleep, so suppressing the match inverts the meaning.
+  // English only: in Urdu a negation commonly asserts the symptom instead
+  // ("نیند پوری نہیں ہوتی" reports disrupted sleep).
   if (/[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(sentence)) return false
-  return NEGATION.test(sentence)
+
+  const match = sentence.match(pattern)
+  if (!match || match.index === undefined) return false
+
+  // Only look just before the match; a cue elsewhere in a long sentence
+  // usually negates something unrelated.
+  const before = sentence.slice(Math.max(0, match.index - 34), match.index)
+  if (INABILITY.test(before)) return false
+  if (NEGATION.test(before)) return true
+
+  // Resolution language sits after the keyword: "my chest doesn't hurt now",
+  // "I sleep fine these days".
+  const after = sentence.slice(match.index + match[0].length, match.index + match[0].length + 48)
+  return RESOLVED.test(after)
 }
 
+
 export function formatTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) seconds = 0
   const mins = Math.floor(seconds / 60).toString().padStart(2, '0')
   const secs = Math.floor(seconds % 60).toString().padStart(2, '0')
   return `${mins}:${secs}`
@@ -108,7 +127,8 @@ export function buildNote(lines: Line[]): Note {
   const therapistIdx: number[] = []
   lines.forEach((line, index) => (line.speaker === 'Client' ? clientIdx : therapistIdx).push(index))
 
-  const duration = lines.length ? Math.max(...lines.map((line) => line.t)) : 0
+  const times = lines.map((line) => line.t).filter((value) => Number.isFinite(value) && value >= 0)
+  const duration = times.length ? Math.max(...times) : 0
 
   // ---- Themes: counted across every line, sourced exactly -------------------
   const themes: NoteItem[] = THEMES

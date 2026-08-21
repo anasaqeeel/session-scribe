@@ -73,7 +73,7 @@ button:disabled { cursor: not-allowed; }
 .session-head { padding: 18px 0; border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); }
 .session-meta { display: flex; align-items: center; gap: 7px; margin: 7px 0 0; color: var(--muted-foreground); font-size: 13px; }
 .session-meta span { color: #c9c2b4; }
-.select-wrap select { padding: 7px 6px; border: 0; color: var(--muted-foreground); background: transparent; font: 10.5px var(--mono); letter-spacing: .04em; }
+.select-wrap select { min-height: 36px; padding: 8px 6px; border: 0; color: var(--muted-foreground); background: transparent; font: 10.5px var(--mono); letter-spacing: .04em; }
 .speaker-toggle { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; font: 500 10.5px var(--mono); letter-spacing: .09em; text-transform: uppercase; }
 .speaker-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .55; }
 .speaker-toggle.is-therapist { color: var(--primary-foreground); background: var(--primary); border-color: var(--primary); }
@@ -118,7 +118,7 @@ button:disabled { cursor: not-allowed; }
 .interim-line p { color: var(--muted-foreground); font-style: italic; }
 .bookmark-marker { position: absolute; left: 88px; z-index: 2; color: var(--amber); transform: translateX(-50%); }
 
-.empty-state, .note-empty { display: grid; place-items: center; gap: 12px; padding: 128px 26px; color: var(--muted-foreground); text-align: center; }
+.empty-state, .note-empty { display: grid; place-items: center; gap: 12px; padding: clamp(34px, 9vh, 120px) 26px; color: var(--muted-foreground); text-align: center; }
 .empty-orb { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; color: var(--muted-foreground); background: linear-gradient(160deg, #f3efe6, #e9e3d8); box-shadow: inset 0 1px 0 #fff, 0 6px 18px -8px rgba(32,26,18,.3); }
 .empty-state p, .note-empty p { margin: 0; color: var(--primary); font-size: 15px; font-weight: 500; }
 .note-empty span { max-width: 300px; font-size: 12.5px; line-height: 1.6; }
