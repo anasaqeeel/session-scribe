@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Bookmark, Check, Clipboard, Download, FileText, Mic, Pencil, Printer, RotateCcw, Search, Sparkles, StopCircle, Trash2, X } from 'lucide-react'
 import { buildNote, formatTime, isRtl, normalise, noteToMarkdown, noteToText, talkStats, type Line, type Note, type NoteItem, type Speaker } from '@/lib/dap'
+import { newId, track, trackEvent } from '@/lib/track'
 
 const STORAGE_KEY = 'session-scribe:draft-v1'
 
@@ -67,6 +68,12 @@ export function SessionScribe() {
   const speakerRef = useRef(speaker)
   const languageRef = useRef(language)
   const startRef = useRef<() => void>(() => {})
+  // Server-side record of this session; demo links (?demo) are never tracked.
+  const sessionIdRef = useRef('')
+  const noteIdRef = useRef<string | null>(null)
+  const trackingRef = useRef(false)
+  const elapsedRef = useRef(0)
+  useEffect(() => { elapsedRef.current = elapsed }, [elapsed])
   useEffect(() => { speakerRef.current = speaker }, [speaker])
 
   // Restore the last session so a refresh never costs work.
@@ -78,10 +85,18 @@ export function SessionScribe() {
         if (demo === 'note') setPendingDemoDraft(true)
         return
       }
+      if (!trackingRef.current) track({
+        kind: 'visit', path: window.location.pathname + window.location.search, referrer: document.referrer,
+        browserLanguage: navigator.language, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        screen: `${window.screen.width}x${window.screen.height}`,
+      })
+      trackingRef.current = true
+      sessionIdRef.current ||= newId()
       const saved = window.localStorage.getItem(STORAGE_KEY)
       if (!saved) { setRestored(true); return }
       const parsed = JSON.parse(saved)
       if (Array.isArray(parsed.lines) && parsed.lines.length) {
+        if (typeof parsed.id === 'string') sessionIdRef.current = parsed.id
         setLines(parsed.lines)
         setElapsed(parsed.elapsed ?? 0)
         setBookmarks(Array.isArray(parsed.bookmarks) ? parsed.bookmarks : [])
@@ -94,10 +109,38 @@ export function SessionScribe() {
   useEffect(() => {
     if (!restored) return
     try {
-      if (lines.length) window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ lines, elapsed, bookmarks }))
+      if (lines.length) window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: sessionIdRef.current, lines, elapsed, bookmarks }))
       else window.localStorage.removeItem(STORAGE_KEY)
     } catch { /* quota or private mode — persistence is best effort */ }
   }, [lines, elapsed, bookmarks, restored])
+
+  // Mirror the session to the database: debounced on content changes, flushed
+  // when the tab is hidden or closed so the last lines are not lost.
+  const syncSession = useCallback(() => {
+    if (!trackingRef.current || !sessionIdRef.current || !linesRef.current.length) return
+    track({ kind: 'session', sessionId: sessionIdRef.current, language: languageRef.current, elapsed: elapsedRef.current, lines: linesRef.current, bookmarks: bookmarksRef.current })
+  }, [])
+  const linesRef = useRef(lines)
+  const bookmarksRef = useRef(bookmarks)
+  useEffect(() => {
+    linesRef.current = lines; bookmarksRef.current = bookmarks
+    if (!restored) return
+    const timer = window.setTimeout(syncSession, 1500)
+    return () => window.clearTimeout(timer)
+  }, [lines, bookmarks, language, restored, syncSession])
+
+  useEffect(() => {
+    const flush = () => { if (document.visibilityState === 'hidden') syncSession() }
+    document.addEventListener('visibilitychange', flush)
+    window.addEventListener('pagehide', syncSession)
+    return () => { document.removeEventListener('visibilitychange', flush); window.removeEventListener('pagehide', syncSession) }
+  }, [syncSession])
+
+  useEffect(() => {
+    if (!trackingRef.current || !noteIdRef.current) return
+    const timer = window.setTimeout(() => track({ kind: 'note', noteId: noteIdRef.current, sessionId: sessionIdRef.current, noteText }), 2000)
+    return () => window.clearTimeout(timer)
+  }, [noteText])
 
   useEffect(() => {
     if (!recording) return
@@ -119,6 +162,7 @@ export function SessionScribe() {
   }, [toast])
 
   const stop = useCallback(() => {
+    if (shouldRecord.current && trackingRef.current) trackEvent('record_stop', sessionIdRef.current, { elapsed: elapsedRef.current })
     shouldRecord.current = false
     setRecording(false)
     recognitionRef.current?.stop()
@@ -130,6 +174,7 @@ export function SessionScribe() {
       setError('Speech capture is not supported in this browser. Try Chrome on desktop or Safari on iPhone.')
       return
     }
+    if (!shouldRecord.current && trackingRef.current) trackEvent('record_start', sessionIdRef.current, { language: languageRef.current })
     shouldRecord.current = true
     if (!startedAt.current) startedAt.current = Date.now()
     const recognition = new SpeechRecognition()
@@ -152,7 +197,10 @@ export function SessionScribe() {
       if (shouldRecord.current) window.setTimeout(() => startRef.current(), 100)
     }
     recognition.onerror = (event: any) => {
-      if (event.error !== 'no-speech' && event.error !== 'aborted') setError(`Microphone error: ${event.error}.`)
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        setError(`Microphone error: ${event.error}.`)
+        if (trackingRef.current) trackEvent('mic_error', sessionIdRef.current, { error: event.error })
+      }
     }
     recognitionRef.current = recognition
     setRecording(true)
@@ -164,6 +212,7 @@ export function SessionScribe() {
   // Switching language mid-session rebuilds the recogniser: `lang` is fixed at
   // construction, so the running instance can never change dialect in place.
   useEffect(() => {
+    if (trackingRef.current && languageRef.current !== language) trackEvent('language_change', sessionIdRef.current, { from: languageRef.current, to: language })
     languageRef.current = language
     if (!recording) return
     setToast(`Listening in ${language === 'ur-PK' ? 'اردو' : language === 'en-IN' ? 'English (India)' : 'English (US)'}`)
@@ -187,18 +236,32 @@ export function SessionScribe() {
 
   const resetAll = (nextLines: Line[], nextElapsed: number) => {
     stop()
+    syncSession()
+    sessionIdRef.current = newId(); noteIdRef.current = null
     setLines(nextLines); setElapsed(nextElapsed); setInterim(''); setError(''); setNote(null); setNoteText('')
     setBookmarks([]); setHighlighted([]); setActiveTab('transcript'); startedAt.current = 0
   }
 
-  const loadExample = () => { resetAll(example, 243); setToast('Example session loaded') }
-  const clearSession = () => { resetAll([], 0); setToast('Session cleared') }
+  const loadExample = () => {
+    if (trackingRef.current) trackEvent('example_loaded', sessionIdRef.current)
+    resetAll(example, 243); setToast('Example session loaded')
+  }
+  const clearSession = () => {
+    if (trackingRef.current) trackEvent('session_cleared', sessionIdRef.current, { lines: lines.length })
+    resetAll([], 0); setToast('Session cleared')
+  }
 
-  const applyNote = (built: Note, source: 'llm' | 'local') => {
+  const applyNote = (built: Note, source: 'llm' | 'local', model?: string) => {
+    const text = noteToText(built)
     setNote(built)
-    setNoteText(noteToText(built))
+    setNoteText(text)
     setNoteSource(source)
     setActiveTab('note')
+    if (trackingRef.current) {
+      noteIdRef.current = newId()
+      syncSession()
+      track({ kind: 'note', noteId: noteIdRef.current, sessionId: sessionIdRef.current, source, model, note: built, noteText: text })
+    }
   }
 
   const draftNote = async () => {
@@ -214,9 +277,10 @@ export function SessionScribe() {
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload?.error ?? `Request failed (${response.status})`)
-      applyNote(normalise(payload, local), 'llm')
+      applyNote(normalise(payload, local), 'llm', payload?.model)
       setToast('Note drafted')
     } catch (draftError) {
+      if (trackingRef.current) trackEvent('note_draft_failed', sessionIdRef.current, { error: draftError instanceof Error ? draftError.message : String(draftError) })
       applyNote(local, 'local')
       setError(`${draftError instanceof Error ? draftError.message : 'Draft failed.'} Showing the on-device draft instead.`)
     } finally {
@@ -230,7 +294,10 @@ export function SessionScribe() {
     void draftNote()
   }, [pendingDemoDraft, lines.length])
 
-  const copyNote = async () => { await navigator.clipboard.writeText(noteText); setToast('Note copied to clipboard') }
+  const copyNote = async () => {
+    await navigator.clipboard.writeText(noteText); setToast('Note copied to clipboard')
+    if (trackingRef.current) trackEvent('note_copied', sessionIdRef.current, { noteId: noteIdRef.current })
+  }
 
   const downloadNote = () => {
     const blob = new Blob([noteText], { type: 'text/plain' })
@@ -241,6 +308,7 @@ export function SessionScribe() {
     anchor.click()
     URL.revokeObjectURL(url)
     setToast('Note downloaded')
+    if (trackingRef.current) trackEvent('note_downloaded', sessionIdRef.current, { noteId: noteIdRef.current })
   }
 
   const onSource = (index: number) => {
@@ -250,7 +318,10 @@ export function SessionScribe() {
     window.setTimeout(() => setHighlighted([]), 2600)
   }
 
-  const addBookmark = () => { setBookmarks((current) => [...current, { t: elapsed }]); setToast(`Bookmarked at ${formatTime(elapsed)}`) }
+  const addBookmark = () => {
+    setBookmarks((current) => [...current, { t: elapsed }]); setToast(`Bookmarked at ${formatTime(elapsed)}`)
+    if (trackingRef.current) trackEvent('bookmark', sessionIdRef.current, { t: elapsed })
+  }
   const indexedLines = useMemo(() => lines.map((line, index) => ({ ...line, index })), [lines])
   const riskLevel = note?.risk.some((item) => item.severity === 'high') ? 'high' : note?.risk.length ? 'moderate' : 'none'
 
@@ -267,7 +338,6 @@ export function SessionScribe() {
         <div className="top-actions">
           <button className="quiet-button" onClick={loadExample}><Sparkles size={15} /> Example</button>
           <button className="quiet-button" onClick={clearSession} disabled={!lines.length}><Trash2 size={15} /> Clear</button>
-          <span className="privacy" title="Nothing leaves this browser"><span className="status-dot" /> On-device</span>
         </div>
       </header>
 

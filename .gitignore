@@ -15,3 +15,5 @@ node_modules
 .DS_Store
 # test build output
 .test-build/
+.vercel
+.env*
